@@ -78,7 +78,8 @@ In response package, creates UserResponse class, and ApiResponse class
 ```java
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
+@Getter
+@Setter
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserResponse {
@@ -94,9 +95,9 @@ public class UserResponse {
 ```java
 @AllArgsConstructor
 @NoArgsConstructor
-@Data
+@Setter
+@Getter
 @Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiResponse<T>{
     int code = 200;
@@ -191,6 +192,7 @@ public class UserService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         User createdUser = modelMapper.map(request, User.class);
+        System.out.println(createdUser.toString());
         userRepository.save(createdUser);
         return modelMapper.map(createdUser, UserResponse.class);
     }
@@ -202,6 +204,7 @@ public class UserService {
         foundUser.setPassword(request.getPassword());
         foundUser.setFirstName(request.getFirstName());
         foundUser.setLastName(request.getLastName());
+        foundUser.setDob(request.getDob());
         userRepository.save(foundUser);
         return modelMapper.map(foundUser, UserResponse.class);
     }
@@ -231,9 +234,8 @@ public class UserService {
 Create UserController in controller package
 
 ```java
-@Controller
+@RestController
 @RequiredArgsConstructor
-@Data
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @RequestMapping("/auth-service/user")
 public class UserController {
@@ -254,14 +256,14 @@ public class UserController {
     }
 
     @PostMapping
-    public ApiResponse<UserResponse> createNewUser(UserCreationRequest request){
+    public ApiResponse<UserResponse> createNewUser(@RequestBody UserCreationRequest request){
         ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
         apiResponse.setResult(userService.createUser(request));
         return apiResponse;
     }
 
     @PostMapping("{id}")
-    public ApiResponse<UserResponse> updateUser(@PathVariable String id, @RequestParam UserUpdateRequest request){
+    public ApiResponse<UserResponse> updateUser(@PathVariable String id, @RequestBody UserUpdateRequest request){
         ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
         apiResponse.setResult(userService.updateUser(id, request));
         return apiResponse;
