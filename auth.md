@@ -54,6 +54,28 @@
 
 + Create Controller: UserController
     UserService userService;
+
+
+
+  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
+
++ Create Request: AuthenticationRequest
+        String username;
+        String password;
+
++ Create Response: AuthenticationResponse
+        String token;
+        boolean isAuthenticated;
+
++ Create Service: AuthenticationService
+        ModelMapper modelMapper;
+        UserRepository userRepository;
+
++ Create Controller: AuthenticationController
+        AuthenticationService authenticationService;
+
+
+  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
     
 
 
