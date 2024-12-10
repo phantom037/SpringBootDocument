@@ -13,7 +13,7 @@ This project provides a robust authentication and authorization system for a ban
 
 ## Setup
 
-### 1. Configure Application Properties
+### 1. Create simple CRUD actions for User Service
 
 Create User class in entity packages
 
@@ -280,7 +280,9 @@ public class UserController {
 }
 
 ```
-////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
+////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  //////// ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
+
+### 2. Create Authentication Service with generate token function allow us to create and sign our token
 
 Add the jwt attributes to application.properties
 
