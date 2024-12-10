@@ -192,7 +192,6 @@ public class UserService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
         User createdUser = modelMapper.map(request, User.class);
-        System.out.println(createdUser.toString());
         userRepository.save(createdUser);
         return modelMapper.map(createdUser, UserResponse.class);
     }
@@ -281,4 +280,145 @@ public class UserController {
 }
 
 ```
+////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
 
+Add the jwt attributes to application.properties
+
+```application.properties
+jwt.signerKey=9pxzswn0GXIoxAAh3nIUIlhRAe98eFKJkSuOz0mXiTiZzad4PJTdXujLCVyE+kNM
+jwt.valid-duration=3600
+jwt.refreshable-duration=36000
+```
+
+Update dependencies inside pom.xml
+
+```pom.xml
+		<!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-crypto -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
+		<dependency>
+			<groupId>com.nimbusds</groupId>
+			<artifactId>nimbus-jose-jwt</artifactId>
+			<version>9.40</version>
+		</dependency>
+
+```
+
+Register a bean of ModelMapper in the main class
+
+```java
+@SpringBootApplication
+public class AuthServiceApplication {
+	........
+
+	@Bean
+	PasswordEncoder passwordEncoder(){
+		return new BCryptPasswordEncoder(5);
+	}
+	public static void main(String[] args) {
+		SpringApplication.run(AuthServiceApplication.class, args);
+	}
+}
+
+```
+
+Modify the createUser() method in UserService class
+
+```java
+    public UserResponse createUser(UserCreationRequest request){
+        if(userRepository.existsByUsername(request.getUsername())){
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+        User createdUser = modelMapper.map(request, User.class);
+        createdUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        userRepository.save(createdUser);
+        return modelMapper.map(createdUser, UserResponse.class);
+    }
+```
+
+Create AuthenticationRequest class in dto.request package
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class AuthenticationRequest {
+    String username;
+    String password;
+}
+
+```
+
+Create AuthenticationResponse class in dto.response package
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class AuthenticationResponse {
+    String token;
+    boolean isAuthenticated;
+}
+
+```
+
+Create AuthenticationService class in service package
+
+```java
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class AuthenticationService {
+    ModelMapper modelMapper;
+    UserRepository userRepository;
+
+    @NonFinal
+    @Value("${jwt.signerKey}")
+    String SIGNER_KEY;
+    @NonFinal
+    @Value("${jwt.valid-duration}")
+    long VALID_DURATION;
+    @NonFinal
+    @Value("${jwt.refreshable-duration}")
+    long REFRESHABLE_DURATION;
+
+    public AuthenticationResponse authenticate(AuthenticationRequest request){
+        User user = userRepository.findByUsername(request.getUsername()).orElseThrow(
+                () -> new AppException(ErrorCode.USER_NOT_EXISTED)
+        );
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(5);
+        boolean isAuthenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
+        System.out.println("isAuthenticated: " + isAuthenticated);
+        if (!isAuthenticated) throw new AppException(ErrorCode.USER_EXISTED);
+
+        return AuthenticationResponse.builder().token("Hello World").isAuthenticated(true).build();
+    }
+}
+```
+
+Create AuthenticationController class in controller package
+
+```java
+@RestController
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequestMapping("/auth-service/auth")
+public class AuthenticationController {
+    AuthenticationService authenticationService;
+
+    @PostMapping("/login")
+    public ApiResponse<AuthenticationResponse> login(@RequestBody AuthenticationRequest request){
+        ApiResponse<AuthenticationResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(authenticationService.authenticate(request));
+        return apiResponse;
+    }
+}
+
+```
