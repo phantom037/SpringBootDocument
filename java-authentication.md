@@ -450,3 +450,7 @@ public class AuthenticationController {
 }
 
 ```
+
+### 3. Implement authentication via Oauth2
+
+Spring security consists many security filters, so we need to register a security filter chain in SecurityConfig
