@@ -399,9 +399,35 @@ public class AuthenticationService {
         boolean isAuthenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
         System.out.println("isAuthenticated: " + isAuthenticated);
         if (!isAuthenticated) throw new AppException(ErrorCode.USER_EXISTED);
-
-        return AuthenticationResponse.builder().token("Hello World").isAuthenticated(true).build();
+        String token = generateToken(user);
+        return AuthenticationResponse.builder().token(token).isAuthenticated(true).build();
     }
+
+    /**
+     * A JWT include Header, Payload, Signature
+     * @param user
+     * @return
+     */
+    public String generateToken(User user){
+        JWSHeader header = new JWSHeader(JWSAlgorithm.HS512); // Create the header
+        JWTClaimsSet jwtClaimsSet = new JWTClaimsSet.Builder() 
+                .subject(user.getUsername())
+                .issuer("DL Mocha - Animee")
+                .issueTime(new Date())
+                .expirationTime(new Date(Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
+                .jwtID(UUID.randomUUID().toString())
+                .build();
+
+        Payload payload = new Payload(jwtClaimsSet.toJSONObject()); //Create payload using the claimset
+        JWSObject jwsObject = new JWSObject(header, payload); //turn header and payload inside one JWS objects
+        try{
+            jwsObject.sign(new MACSigner(SIGNER_KEY.getBytes())); //sign the JWS object
+            return jwsObject.serialize();
+        } catch (Exception e){
+            throw new RuntimeException(e);
+        }
+    }
+
 }
 ```
 
