@@ -74,9 +74,11 @@
 + Create Controller: AuthenticationController
         AuthenticationService authenticationService;
 
++ Modify the UserService to encode user password
+
 
   ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
     
-
++ Create Config: SecurityConfig 
 
   
