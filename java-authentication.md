@@ -397,7 +397,6 @@ public class AuthenticationService {
         );
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(5);
         boolean isAuthenticated = passwordEncoder.matches(request.getPassword(), user.getPassword());
-        System.out.println("isAuthenticated: " + isAuthenticated);
         if (!isAuthenticated) throw new AppException(ErrorCode.USER_EXISTED);
         String token = generateToken(user);
         return AuthenticationResponse.builder().token(token).isAuthenticated(true).build();
@@ -454,3 +453,51 @@ public class AuthenticationController {
 ### 3. Implement authentication via Oauth2
 
 Spring security consists many security filters, so we need to register a security filter chain in SecurityConfig
+
+Update dependencies in pom.xml
+
+```pom.xml
+		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-oauth2-resource-server -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+			<version>3.3.2</version>
+		</dependency>
+```
+
+Create SecurityConfig class in config package
+
+```java
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
+    final String PUBLIC_ENDPOINTS[] = {"/auth-service/user", "/auth-service/auth/login", "/auth-service/auth/introspect", " /auth-service/auth/refresh", "/auth-service/auth/logout"};
+
+    @Value("${jwt.signerKey}")
+    String SIGNER_KEY;
+
+    @Bean
+    SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception{
+        httpSecurity.authorizeHttpRequests(
+          request -> request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                  .anyRequest().authenticated());
+
+        httpSecurity.oauth2ResourceServer(oauth2 ->
+            oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder())));
+
+        httpSecurity.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
+        return httpSecurity.build();
+    }
+
+    @Bean
+    JwtDecoder jwtDecoder(){
+        SecretKeySpec secretKeySpec = new SecretKeySpec(SIGNER_KEY.getBytes(), "HS512");
+        return NimbusJwtDecoder.withSecretKey(secretKeySpec).macAlgorithm(MacAlgorithm.HS512).build();
+    }
+
+}
+
+
+```
