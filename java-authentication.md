@@ -255,7 +255,7 @@ public class UserController {
     }
 
     @PostMapping
-    public ApiResponse<UserResponse> createNewUser(@RequestBody UserCreationRequest request){
+    public ApiResponse<UserResponse> createUser(@RequestBody UserCreationRequest request){
         ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
         apiResponse.setResult(userService.createUser(request));
         return apiResponse;
@@ -327,7 +327,7 @@ public class AuthServiceApplication {
 
 ```
 
-Modify the createUser() method in UserService class
+Modify the createUser() method in UserService class to encode the user password
 
 ```java
     public UserResponse createUser(UserCreationRequest request){
@@ -496,8 +496,289 @@ public class SecurityConfig {
         SecretKeySpec secretKeySpec = new SecretKeySpec(SIGNER_KEY.getBytes(), "HS512");
         return NimbusJwtDecoder.withSecretKey(secretKeySpec).macAlgorithm(MacAlgorithm.HS512).build();
     }
+}
+```
+### 4. Create Role and Permission for authorization
+
+Temporary enable all access in Security config .anyRequest().authenticated()
+
+Create Permission and Role in entity packages
+
+```java
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class Permission {
+    @Id
+    String name;
+    String description;
+}
+
+```
+
+
+```java
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class Role {
+    @Id
+    String name;
+    String description;
+    @ManyToMany
+    Set<Permission> permissions;
+}
+
+```
+
+Create PermissionCreationRequest, RoleCreationRequest, RoleUpdateRequest in dto.request package
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class PermissionCreationRequest {
+    String name;
+    String description;
+}
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class RoleCreationRequest {
+    String name;
+    String description;
+    Set<String> permissions;
+}
+
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class RoleUpdateRequest {
+    String description;
+    Set<String> permissions;
+}
+
+```
+
+Create PermissionResponse, RoleResponse in dto.response package
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class PermissionResponse {
+    String name;
+    String description;
+}
+
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class RoleResponse {
+    String name;
+    String description;
+    Set<Permission> permissions;
+}
+
+```
+
+Create PermissionRepository, RoleRepository in repository package
+
+```java
+@Repository
+public interface PermissionRepository extends JpaRepository<Permission, String> {
+}
+```
+
+```java
+@Repository
+public interface RoleRepository extends JpaRepository<Role, String> {
+}
+```
+
+Create PermissionService, RoleService in service package
+
+```java
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class PermissionService {
+    PermissionRepository permissionRepository;
+    ModelMapper modelMapper;
+
+    public PermissionResponse createPermission(PermissionCreationRequest request){
+        if(permissionRepository.existsById(request.getName())) throw new AppException(ErrorCode.PERMISSION_EXISTED);
+        Permission permission = modelMapper.map(request, Permission.class);
+        permissionRepository.save(permission);
+        return modelMapper.map(permission, PermissionResponse.class);
+    }
+
+    public List<PermissionResponse> getAllPermissions(){
+        List<Permission> permissions = permissionRepository.findAll();
+        return permissions.stream().map(permission -> modelMapper.map(permission, PermissionResponse.class)).toList();
+    }
+
+    public void deletePermission(String permissionName){
+        Permission foundPermission = permissionRepository.findById(permissionName).orElseThrow(
+                () -> new AppException(ErrorCode.PERMISSION_NOT_EXISTED)
+        );
+        permissionRepository.delete(foundPermission);
+    }
 
 }
 
+```java
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class RoleService {
+    RoleRepository roleRepository;
+    ModelMapper modelMapper;
+    PermissionRepository permissionRepository;
+
+    public RoleResponse createRole(RoleCreationRequest request){
+        if(roleRepository.existsById(request.getName())) throw new AppException(ErrorCode.ROLE_EXISTED);
+        Role role = modelMapper.map(request, Role.class);
+        var permissions = permissionRepository.findAllById(request.getPermissions());
+        role.setPermissions(new HashSet<>(permissions));
+        roleRepository.save(role);
+        return modelMapper.map(role, RoleResponse.class);
+    }
+
+    public List<RoleResponse> getAllRoles(){
+        List<Role> roles = roleRepository.findAll();
+        return roles.stream().map(role -> modelMapper.map(role, RoleResponse.class)).toList();
+    }
+
+    public RoleResponse getRole(String roleName){
+        Role role = roleRepository.findById(roleName).orElseThrow(
+                () -> new AppException(ErrorCode.ROLE_NOT_EXISTED)
+        );
+        return modelMapper.map(role, RoleResponse.class);
+    }
+
+    public RoleResponse updateRole(String roleName, RoleUpdateRequest request){
+        Role role = roleRepository.findById(roleName).orElseThrow(
+                () -> new AppException(ErrorCode.ROLE_NOT_EXISTED)
+        );
+        var newPermission = permissionRepository.findAllById(request.getPermissions());
+        role.setDescription(request.getDescription());
+        role.setPermissions(new HashSet<>(newPermission));
+        return modelMapper.map(role, RoleResponse.class);
+    }
+
+    public void deleteRole(String roleName){
+        Role role = roleRepository.findById(roleName).orElseThrow(
+                () -> new AppException(ErrorCode.ROLE_NOT_EXISTED)
+        );
+        roleRepository.delete(role);
+    }
+}
+
+```
+
+Create PermissionController, RoleeController in service package
+
+```java
+@RestController
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequestMapping("/auth-service/permission")
+public class PermissionController {
+    PermissionService permissionService;
+
+    @PostMapping
+    public ApiResponse<PermissionResponse> createPermission(@RequestBody PermissionCreationRequest request){
+        ApiResponse<PermissionResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(permissionService.createPermission(request));
+        return apiResponse;
+    }
+
+    @GetMapping
+    public ApiResponse<List<PermissionResponse>> getPermissionDetail(){
+        ApiResponse<List<PermissionResponse>> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(permissionService.getAllPermissions());
+        return apiResponse;
+    }
+
+    @DeleteMapping("/{permission}")
+    public ApiResponse<PermissionResponse> deletePermission(@PathVariable String permission){
+        permissionService.deletePermission(permission);
+        return ApiResponse.<PermissionResponse>builder().message("Successfully Deleted!").build();
+    }
+}
+
+```
+
+```java
+@RestController
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequestMapping("/auth-service/role")
+public class RoleController {
+    RoleService roleService;
+
+    @PostMapping
+    public ApiResponse<RoleResponse> createNewRole(@RequestBody RoleCreationRequest request){
+        ApiResponse<RoleResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(roleService.createRole(request));
+        return apiResponse;
+    }
+
+    @GetMapping("/{roleName}")
+    public ApiResponse<RoleResponse> getRoleDetail(@PathVariable String roleName){
+        ApiResponse<RoleResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(roleService.getRole(roleName));
+        return apiResponse;
+    }
+
+    @GetMapping
+    public ApiResponse<List<RoleResponse>> getAllRoles(){
+        ApiResponse<List<RoleResponse>> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(roleService.getAllRoles());
+        return apiResponse;
+    }
+
+    @PostMapping("/{roleName}")
+    public ApiResponse<RoleResponse> updateRole(@PathVariable String roleName, @RequestBody RoleUpdateRequest request){
+        ApiResponse<RoleResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(roleService.updateRole(roleName, request));
+        return apiResponse;
+    }
+
+    @DeleteMapping("/{roleName}")
+    public ApiResponse<RoleResponse> deleteRole(@PathVariable String roleName){
+        roleService.deleteRole(roleName);
+        return ApiResponse.<RoleResponse>builder().message(new String("Successfully Deleted!")).build();
+
+    }
+}
 
 ```
