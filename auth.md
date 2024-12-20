@@ -79,6 +79,16 @@
 
   ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
     
-+ Create Config: SecurityConfig 
++ Create Config: SecurityConfig
+
+  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
+
++ Temporary enable all access in Security config .anyRequest().authenticated()
+
++ Create Permission: entity
+
++ Create Role: entity
+
++ Create PermissionCreationRequest, RoleCreationRequest, RoleUpdateRequest
 
   
