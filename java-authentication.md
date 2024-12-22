@@ -782,3 +782,124 @@ public class RoleController {
 }
 
 ```
+
+Modify UserResponse in Response package
+
+``` java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserResponse {
+    String id;
+    String username;
+    String firstName;
+    String lastName;
+    LocalDate dob;
+    Set<RoleResponse> roles;
+}
+```
+
+Modify UserCreationRequest in Request package
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserCreationRequest {
+    String username;
+    String password;
+    String firstName;
+    String lastName;
+    LocalDate dob;
+
+    Set<String> roles;
+}
+
+```
+
+Modify UserUpdateRequest in Request package
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserUpdateRequest {
+    String password;
+    String firstName;
+    String lastName;
+    LocalDate dob;
+
+    Set<String> roles;
+}
+
+```
+
+Modify UserService in Service package
+
+```java
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class UserService {
+    UserRepository userRepository;
+    ModelMapper modelMapper;
+    PasswordEncoder passwordEncoder;
+    RoleRepository roleRepository;
+
+
+    public UserResponse createUser(UserCreationRequest request){
+        if(userRepository.existsByUsername(request.getUsername())){
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+        User createdUser = modelMapper.map(request, User.class);
+        createdUser.setPassword(passwordEncoder.encode(request.getPassword()));
+        var roles = roleRepository.findAllById(request.getRoles());
+        createdUser.setRoles(new HashSet<>(roles));
+        userRepository.save(createdUser);
+        return modelMapper.map(createdUser, UserResponse.class);
+    }
+
+    public UserResponse updateUser(String id, UserUpdateRequest request){
+        User foundUser = userRepository.findById(id).orElseThrow(
+                ()  -> new AppException(ErrorCode.USER_NOT_EXISTED)
+        );
+        foundUser.setPassword(request.getPassword());
+        foundUser.setFirstName(request.getFirstName());
+        foundUser.setLastName(request.getLastName());
+        foundUser.setDob(request.getDob());
+        var roles = roleRepository.findAllById(request.getRoles());
+        foundUser.setRoles(new HashSet<>(roles));
+        userRepository.save(foundUser);
+        return modelMapper.map(foundUser, UserResponse.class);
+    }
+
+    public void deleteUser(String id){
+        User foundUser = userRepository.findById(id).orElseThrow(
+                () -> new AppException(ErrorCode.USER_NOT_EXISTED)
+        );
+        userRepository.delete(foundUser);
+    }
+
+    public UserResponse getUserById(String id){
+        User foundUser = userRepository.findById(id).orElseThrow(
+                () -> new AppException(ErrorCode.USER_NOT_EXISTED)
+        );
+        return modelMapper.map(foundUser, UserResponse.class);
+    }
+
+    public List<UserResponse> getAllUser(){
+        List<User> users = userRepository.findAll();
+        return users.stream().map(user -> modelMapper.map(user, UserResponse.class)).toList();
+    }
+}
+
+
+```
+
