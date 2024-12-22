@@ -498,7 +498,7 @@ public class SecurityConfig {
     }
 }
 ```
-### 4. Create Role and Permission for authorization
+### 4. Create Role and Permission Entity for authorization
 
 Temporary enable all access in Security config .anyRequest().authenticated()
 
