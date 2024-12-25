@@ -903,3 +903,128 @@ public class UserService {
 
 ```
 
+### 5. Add Scope to JWT for authorization
+
+Modify generateToken method in AuthenticationService
+
+``` java
+   public String generateToken(User user){
+        ......
+                .jwtID(UUID.randomUUID().toString())
+                .claim("scope", buildScope(user))
+                .build();
+
+        ......
+   }
+
+```
+
+
+Add buildScope method in AuthenticationService
+
+```java
+   public String buildScope(User user){
+        StringJoiner stringJoiner = new StringJoiner(" ");
+        if(!CollectionUtils.isEmpty(user.getRoles())){
+            user.getRoles().forEach(role -> {
+                stringJoiner.add("ROLE_" + role.getName());
+                if(!CollectionUtils.isEmpty(role.getPermissions())){
+                    role.getPermissions().forEach(permission -> stringJoiner.add(permission.getName()));
+                }
+            });
+        }
+        return stringJoiner.toString();
+    }
+```
+
+
+Modify SecurityConfig
+
+```java
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class SecurityConfig {
+    final String PUBLIC_ENDPOINTS[] = {"/auth-service/user", "/auth-service/auth/login", "/auth-service/auth/introspect", " /auth-service/auth/refresh", "/auth-service/auth/logout"};
+
+    ....
+
+    @Bean
+    SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception{
+        ....
+
+        httpSecurity.oauth2ResourceServer(oauth2 ->
+            oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(jwtDecoder()).jwtAuthenticationConverter(jwtAuthenticationConverter())));
+
+        httpSecurity.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
+        return httpSecurity.build();
+    }
+
+    ....
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter(){
+        JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();;
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+        return jwtAuthenticationConverter;
+    }
+
+}
+
+```
+
+Create getMyInfo in UserController
+
+```java
+@GetMapping("/myinfo")
+    public ApiResponse<UserResponse> getMyInfo(){
+        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(userService.getMyInfo());
+        return apiResponse;
+    }
+
+```
+
+
+Update UserService
+
+
+```java
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class UserService {
+    ....
+
+    @PreAuthorize("hasAuthority('DELETE_DATA')")
+    public void deleteUser(String id){
+        ....
+    }
+
+    @PostAuthorize(("returnObject.username == authentication.name"))
+    public UserResponse getUserById(String id){
+       ....
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserResponse> getAllUser(){
+        ....
+    }
+
+
+
+    public UserResponse getMyInfo(){
+        //get info of current authenticated user
+        var context = SecurityContextHolder.getContext();
+        String username = context.getAuthentication().getName();
+
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new AppException(ErrorCode.USER_NOT_EXISTED));
+
+        return modelMapper.map(user, UserResponse.class);
+    }
+
+```
