@@ -905,6 +905,28 @@ public class UserService {
 
 ### 5. Add Scope to JWT for authorization
 
+Create InvalidToken entity and InvalidTokenRepository
+
+```java
+@Entity
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class InvalidatedToken {
+    @Id
+    String id;
+    Date expiredTime;
+}
+```
+
+```java
+@Repository
+public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedToken, String> {
+}
+```
+
 Modify generateToken method in AuthenticationService
 
 ``` java
@@ -917,6 +939,51 @@ Modify generateToken method in AuthenticationService
         ......
    }
 
+```
+
+Create IntrospectRequest, LogoutRequest, RefreshableRequest and IntrospectResponse classes
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class IntrospectRequest {
+    String token;
+}
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class LogoutRequest {
+    String token;
+}
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class RefreshableRequest {
+    String token;
+}
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class IntrospectResponse {
+    boolean isValid;
+}
 ```
 
 
@@ -1026,5 +1093,218 @@ public class UserService {
 
         return modelMapper.map(user, UserResponse.class);
     }
+
+```
+
+### 6. Add RefreshableToken and Logout features
+
+
+
+Create JwtAuthenticationEntryPoint and CustomJwtDecoder in config
+
+```java
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+        ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
+        response.setStatus(errorCode.getStatus().value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ApiResponse<?> apiResponse = ApiResponse.builder().code(errorCode.getCode()).message(errorCode.getMessage()).build();
+        ObjectMapper objectMapper = new ObjectMapper();
+        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+        response.flushBuffer();
+    }
+}
+
+```
+
+```java
+@Component
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CustomJwtDecoder implements JwtDecoder {
+    @Value("${jwt.signerKey}")
+    String SIGNER_KEY;
+
+    @Autowired
+    AuthenticationService authenticationService;
+
+    NimbusJwtDecoder nimbusJwtDecoder = null;
+
+    @Override
+    public Jwt decode(String token) throws JwtException{
+        try{
+            var response = authenticationService.introspect(IntrospectRequest.builder().token(token).build());
+
+            if(!response.isValid()) throw new JwtException("Token is invalid");
+        } catch (JOSEException | ParseException e){
+            throw new JwtException(e.getMessage());
+        }
+        if(Objects.isNull(nimbusJwtDecoder)){
+            SecretKeySpec secretKeySpec = new SecretKeySpec(SIGNER_KEY.getBytes(), "HS512");
+            nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec).macAlgorithm(MacAlgorithm.HS512).build();
+        }
+        return nimbusJwtDecoder.decode(token);
+    }
+
+}
+```
+
+Modify SecurityConfig
+
+```java
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class SecurityConfig {
+    final String PUBLIC_ENDPOINTS[] = {"/auth-service/user", "/auth-service/auth/login", "/auth-service/auth/introspect", " /auth-service/auth/refresh", "/auth-service/auth/logout"};
+
+    @Autowired
+    CustomJwtDecoder customJwtDecoder;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
+        httpSecurity.authorizeHttpRequests(
+                request -> request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                        .anyRequest().authenticated());
+
+        httpSecurity.oauth2ResourceServer(oauth2 -> {
+            oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(customJwtDecoder).jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                    .authenticationEntryPoint(new JwtAuthenticationEntryPoint());
+
+        });
+        httpSecurity.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
+        return httpSecurity.build();
+    }
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter(){
+        ....
+    }
+
+}
+```
+
+Move PasswordEncoder Bean to the main class avoiding cycle relation
+Add logout, introspect, refreshToken and verifyToken methods to AuthenticationService
+
+```java
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class AuthenticationService {
+    ....
+    PasswordEncoder passwordEncoder;
+    InvalidatedTokenRepository invalidatedTokenRepository;
+
+    ....
+
+    public AuthenticationResponse authenticate(AuthenticationRequest request){
+        ....
+    }
+
+    public void logout(LogoutRequest request) throws JOSEException, ParseException{
+        try{
+            var token = request.getToken();
+            var signedJWT = verifyToken(token, true);
+            String jwtId = signedJWT.getJWTClaimsSet().getJWTID();
+            Date expiredTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+            InvalidatedToken invalidatedToken = new InvalidatedToken(jwtId, expiredTime);
+            invalidatedTokenRepository.save(invalidatedToken);
+        }catch (AppException exception){
+
+        }
+
+    }
+
+    public IntrospectResponse introspect(IntrospectRequest request) throws JOSEException, ParseException{
+        var token = request.getToken();
+        boolean isValid = true;
+        try{
+            verifyToken(token, false);
+        } catch (AppException exception){
+            isValid = false;
+        }
+        return IntrospectResponse.builder().isValid(isValid).build();
+    }
+
+    public AuthenticationResponse refreshToken(RefreshableRequest request) throws ParseException, JOSEException {
+        var token = request.getToken();
+        var signedJWT = verifyToken(token, true);
+        String jwtId = signedJWT.getJWTClaimsSet().getJWTID();
+        Date expiredTime = signedJWT.getJWTClaimsSet().getExpirationTime();
+        InvalidatedToken invalidatedToken = new InvalidatedToken(jwtId, expiredTime);
+        invalidatedTokenRepository.save(invalidatedToken);
+
+        var username = signedJWT.getJWTClaimsSet().getSubject();
+        var user = userRepository.findByUsername(username).orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+        var newToken = generateToken(user);
+        return AuthenticationResponse.builder().isAuthenticated(true).token(newToken).build();
+    }
+
+    private String generateToken(User user){
+        ....
+    }
+
+    private String buildScope(User user){
+        ....
+    }
+
+    private SignedJWT verifyToken(String token, boolean isRefreshed) throws JOSEException, ParseException {
+        JWSVerifier verifier = new MACVerifier(SIGNER_KEY.getBytes());
+        SignedJWT signedJWT = SignedJWT.parse(token);
+        Date expirationTime = isRefreshed
+                ? new Date(signedJWT.getJWTClaimsSet().getIssueTime().toInstant().plus(REFRESHABLE_DURATION, ChronoUnit.SECONDS).toEpochMilli())
+                : signedJWT.getJWTClaimsSet().getExpirationTime();
+
+        boolean isVerified = signedJWT.verify(verifier);
+
+        if(!(isVerified && expirationTime.after(new Date()))) throw new AppException(ErrorCode.UNAUTHENTICATED);
+
+        String jwtId = signedJWT.getJWTClaimsSet().getJWTID();
+        if(invalidatedTokenRepository.existsById(jwtId)) throw new AppException(ErrorCode.UNAUTHENTICATED);
+        return signedJWT;
+    }
+
+}
+```
+
+
+Add introspect, logout and refresh methods in AuthenticationController
+
+```java
+@RestController
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequestMapping("/auth-service/auth")
+public class AuthenticationController {
+    AuthenticationService authenticationService;
+
+    @PostMapping("/login")
+    public ApiResponse<AuthenticationResponse> login(@RequestBody AuthenticationRequest request){
+        ....
+    }
+
+    @PostMapping("/introspect")
+    public ApiResponse<IntrospectResponse> introspect(@RequestBody IntrospectRequest request) throws ParseException, JOSEException {
+        ApiResponse<IntrospectResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(authenticationService.introspect(request));
+        return apiResponse;
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
+        authenticationService.logout(request);
+        return ApiResponse.<Void>builder().build();
+    }
+
+    @PostMapping("/refresh")
+    public ApiResponse<AuthenticationResponse> refresh(@RequestBody RefreshableRequest request) throws ParseException, JOSEException {
+        ApiResponse<AuthenticationResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(authenticationService.refreshToken(request));
+        return apiResponse;
+    }
+}
 
 ```
