@@ -1309,8 +1309,193 @@ public class AuthenticationController {
 
 ```
 
+### 7. Add Validation Fields and custom validation
 
-### 7. Hide data from application.properties
+Add @Size annotaion to UserCreationRequest and UserUpdateRequest
+
+```UserCreationRequest.java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserCreationRequest {
+    @Size(min = 3, message = "USERNAME_INVALID")
+    String username;
+    @Size(min = 8, message = "INVALID_PASSWORD")
+    String password;
+    @Size(min = 1, message = "FIRSTNAME_IS_NULL")
+    String firstName;
+    @Size(min = 1, message = "LASTNAME_IS_NULL")
+    String lastName;
+    LocalDate dob;
+
+    Set<String> roles;
+}
+
+```
+
+```UserUpdateRequest.java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserUpdateRequest {
+    @Size(min = 8, message = "INVALID_PASSWORD")
+    String password;
+    @Size(min = 1, message = "FIRSTNAME_IS_NULL")
+    String firstName;
+    @Size(min = 1, message = "LASTNAME_IS_NULL")
+    String lastName;
+    LocalDate dob;
+    Set<String> roles;
+}
+```
+
+Modify GlobalExceptionHandler
+
+```
+
+@ControllerAdvice
+public class GlobalExceptionHandler {
+    private static final String MIN_ATTRIBUTE = "min";
+    ....
+
+    @ExceptionHandler(value = MethodArgumentNotValidException.class)
+    ResponseEntity<ApiResponse> handlingValidation(MethodArgumentNotValidException exception){
+        String enumKey = exception.getFieldError().getDefaultMessage();
+
+        ErrorCode errorCode = ErrorCode.INVALID_KEY;
+        Map<String, Object> attributes = new HashMap<>();
+        try{
+            errorCode = ErrorCode.valueOf(enumKey);
+            var constrainViolation = exception.getBindingResult().getAllErrors().get(0).unwrap(ConstraintViolation.class);
+            attributes = constrainViolation.getConstraintDescriptor().getAttributes();
+        } catch (IllegalArgumentException e){
+
+        }
+        ApiResponse apiResponse = new ApiResponse<>();
+        apiResponse.setCode(errorCode.getCode());
+        apiResponse.setMessage(Objects.nonNull(attributes) ? mapAttribute(errorCode.getMessage(), attributes) : errorCode.getMessage());
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
+
+    private String mapAttribute(String message, Map<String, Object> attributes){
+        String minValue = attributes.get(MIN_ATTRIBUTE).toString();
+        return message.replace("{" + MIN_ATTRIBUTE + "}", minValue);
+    }
+}
+
+```
+
+Create validator package and DobConstraint interface, DobValidator class
+
+```DobConstraint.java
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Target({FIELD})
+@Retention(RUNTIME)
+@Constraint(validatedBy = { DobValidator.class })
+public @interface DobConstraint {
+    String message() default "Invalid date of birth";
+    int min();
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+
+```
+
+```
+public class DobValidator implements ConstraintValidator<DobConstraint, LocalDate> {
+    private int min;
+
+    @Override
+    public void initialize(DobConstraint constraintAnnotation) {
+        ConstraintValidator.super.initialize(constraintAnnotation);
+        min = constraintAnnotation.min();
+    }
+
+    @Override
+    public boolean isValid(LocalDate localDate, ConstraintValidatorContext constraintValidatorContext) {
+        if(Objects.isNull(localDate)) return true;
+        long years = ChronoUnit.YEARS.between(localDate, LocalDate.now());
+        return years >= min;
+    }
+}
+
+```
+
+
+Modify UserCreationRequest and UserUpdateRequest
+
+```UserCreationRequest.java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserCreationRequest {
+    ....
+    @DobConstraint(min = 18, message = "INVALID_DOB")
+    LocalDate dob;
+
+    Set<String> roles;
+}
+
+```
+
+```UserUpdateRequest.java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class UserUpdateRequest {
+    ....
+    @DobConstraint(min = 18, message = "INVALID_DOB")
+    LocalDate dob;
+    Set<String> roles;
+}
+```
+
+
+Add @Valid annotation in parameter request 
+
+```
+@RestController
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequestMapping("/auth-service/user")
+public class UserController {
+    ....
+
+    @PostMapping
+    public ApiResponse<UserResponse> createUser(@Valid @RequestBody UserCreationRequest request){
+        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(userService.createUser(request));
+        return apiResponse;
+    }
+
+    @PostMapping("{id}")
+    public ApiResponse<UserResponse> updateUser(@PathVariable String id, @Valid @RequestBody UserUpdateRequest request){
+        ApiResponse<UserResponse> apiResponse = new ApiResponse<>();
+        apiResponse.setResult(userService.updateUser(id, request));
+        return apiResponse;
+    }
+
+    ....
+}
+```
+
+
+### 8. Hide data from application.properties
 
 Create env.properties
 
