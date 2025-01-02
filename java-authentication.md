@@ -1308,3 +1308,79 @@ public class AuthenticationController {
 }
 
 ```
+
+
+### 7. Hide data from application.properties
+
+Create env.properties
+
+```env.properties
+PORT=8080
+DB_URL=jdbc:mysql://localhost:3306/animee
+DB_USER=root
+DB_PASSWORD=18091999dat
+SIGNER_KEY=9pxzswn0GXIoxAAh3nIUIlhRAe98eFKJkSuOz0mXiTiZzad4PJTdXujLCVyE+kNM
+VALID_DURATION=3600
+REFRESHABLE_DURATION=36000
+```
+
+passing value to application.properties
+
+```application.properties
+spring.application.name=auth-service
+spring.config.import=file:./auth-service/env.properties
+server.port=${PORT}
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USER}
+spring.datasource.password=${DB_PASSWORD}
+spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+spring.jpa.hibernate.ddl-auto=update
+jwt.signerKey=${SIGNER_KEY}
+jwt.valid-duration=${VALID_DURATION}
+jwt.refreshable-duration=${REFRESHABLE_DURATION}
+```
+
+
+Modify git.ignore
+
+```git.ignore
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Enviroment used to hide data in application.properties ###
+env.properties
+
+```
+
