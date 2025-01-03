@@ -1,5 +1,5 @@
 
-# Spring Boot Banking Authentication API
+# Spring Boot Authentication Service
 
 This project provides a robust authentication and authorization system for a banking application, featuring JWT-based authentication, role-based access control (RBAC), and CRUD operations for users, roles, and permissions.
 
@@ -280,7 +280,6 @@ public class UserController {
 }
 
 ```
-////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  //////// ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////  ////////
 
 ### 2. Create Authentication Service with generate token function allow us to create and sign our token
 
@@ -295,17 +294,11 @@ jwt.refreshable-duration=36000
 Update dependencies inside pom.xml
 
 ```pom.xml
-		<!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-crypto -->
-		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-crypto</artifactId>
-		</dependency>
-		<!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
-		<dependency>
-			<groupId>com.nimbusds</groupId>
-			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>9.40</version>
-		</dependency>
+<!-- https://mvnrepository.com/artifact/org.springframework.security/spring-security-crypto -->
+<dependency>
+	<groupId>org.springframework.security</groupId>
+	<artifactId>spring-security-crypto</artifactId>
+</dependency>
 
 ```
 
