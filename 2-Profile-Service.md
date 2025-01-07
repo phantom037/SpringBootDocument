@@ -1,15 +1,11 @@
 
 # Spring Boot Profile Service with Neo4J
 
-This project provides a robust authentication and authorization system for a banking application, featuring JWT-based authentication, role-based access control (RBAC), and CRUD operations for users, roles, and permissions.
+This project provides cerate and read actions for profile service using Neo4J as databse 
 
 ## Features
-
-- **JWT-Based Authentication**: Issue JWT tokens and validate them for secure access via OAuth 2.0, allow to validate and refresh token if need.
-- **Role-Based Access Control (RBAC)**: Manage roles and permissions for fine-grained access control using filter chain.
-- **CRUD Operations**: Manage users, roles, and permissions.
-- **Global Exception Handling**: Handles exceptions like `AccessDeniedException`, `AppException`, `MethodArgumentNotValidException`, and more.
-- **Custom JWT Decoder**: A scalable JWT decoder that fits into Spring Security’s filter chain for JWT validation and authentication.
+- **Create Operations**: Create new user profile
+- **Read Operations**: Read specific user profile using userId
 
 ## Setup
 Intialize Spring boot project with Spring Web, Lombok, Spring Data Neo4j and add ModelMapper
@@ -29,12 +25,14 @@ public class CharacterProfile {
     @Id
     @GeneratedValue(generatorClass = UUIDStringGenerator.class)
     String id;
+    String userId;
     String firstName;
     String lastName;
     LocalDate dob;
     String city;
 
 }
+
 
 ```
 
@@ -46,6 +44,7 @@ Create ProfileCreationRequest in dto.request and CharacterProfileResponse in dto
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProfileCreationRequest {
+    String userId;
     String firstName;
     String lastName;
     LocalDate dob;
@@ -88,7 +87,9 @@ public class CharacterProfileService {
     ModelMapper modelMapper;
 
     public CharacterProfileResponse createProfile(ProfileCreationRequest request){
+        System.out.println("request: " + request);
         CharacterProfile characterProfile = modelMapper.map(request, CharacterProfile.class);
+        System.out.println("from profile: " + characterProfile);
         characterProfileRepository.save(characterProfile);
         return modelMapper.map(characterProfile, CharacterProfileResponse.class);
     }
@@ -113,16 +114,28 @@ Create CharacterProfileController in controller package
 public class CharacterProfileController {
     CharacterProfileService characterProfileService;
 
-    @PostMapping
-    CharacterProfileResponse createCharacter(@RequestBody ProfileCreationRequest request){
-        return characterProfileService.createProfile(request);
-    }
-
     @GetMapping("/{id}")
     CharacterProfileResponse getCharacter(@PathVariable String id){
         return characterProfileService.getProfile(id);
     }
 }
 
+```
+
+Create InternalCharacterProfileController in controller package
+
+```.java
+@RestController
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@RequestMapping("/profile-service")
+public class InternalCharacterProfileController {
+    CharacterProfileService characterProfileService;
+
+    @PostMapping("/internal")
+    public CharacterProfileResponse createCharacter(@RequestBody ProfileCreationRequest request){
+        return characterProfileService.createProfile(request);
+    }
+}
 ```
 
