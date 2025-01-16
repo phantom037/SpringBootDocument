@@ -33,7 +33,6 @@ public class CharacterProfile {
 
 }
 
-
 ```
 
 Create ProfileCreationRequest in dto.request and CharacterProfileResponse in dto.response
