@@ -16,113 +16,78 @@ Intialize Spring boot project with Spring Web, Lombok, Spring Data Neo4j and add
 
 ### 1. Create profile entity
 
-Create CharacterProfile class in entity packages
+Create Springboot project with ONLY lombok dependencies and modify the pom.xml
 
-```java
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-@Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
-@Node("character_profile")
-public class CharacterProfile {
-    @Id
-    @GeneratedValue(generatorClass = UUIDStringGenerator.class)
-    String id;
-    String firstName;
-    String lastName;
-    LocalDate dob;
-    String city;
+```pom.xml
+.....
+	<properties>
+		.....
+		<spring-cloud.version>2023.0.3</spring-cloud.version>
+	</properties>
+	<dependencies>
+		......
+        <dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-gateway</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.projectreactor</groupId>
+			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.netty</groupId>
+			<artifactId>netty-resolver-dns-native-macos</artifactId>
+			<version>4.1.114.Final</version> <!-- Match your current Netty version -->
+			<classifier>osx-aarch_64</classifier> <!-- For ARM-based Macs (e.g., Apple Silicon) -->
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.modelmapper/modelmapper -->
+		<dependency>
+			<groupId>org.modelmapper</groupId>
+			<artifactId>modelmapper</artifactId>
+			<version>3.1.1</version>
+		</dependency>
+	</dependencies>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-dependencies</artifactId>
+				<version>${spring-cloud.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
-}
+	<build>
+		.....
+	</build>
 
-```
-
-Create ProfileCreationRequest in dto.request and CharacterProfileResponse in dto.response
-
-```.java
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class ProfileCreationRequest {
-    String firstName;
-    String lastName;
-    LocalDate dob;
-    String city;
-}
-
-```
-
-```.java
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class CharacterProfileResponse {
-    String id;
-    String firstName;
-    String lastName;
-    LocalDate dob;
-    String city;
-}
-
-```
-
-Create CharacterProfileRepository in repository package
-
-```.java
-@Repository
-public interface CharacterProfileRepository extends Neo4jRepository<CharacterProfile, String> {
-}
-```
-
-Create CharacterProfileService in service package
-
-```.java
-@Service
-@RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class CharacterProfileService {
-    CharacterProfileRepository characterProfileRepository;
-    ModelMapper modelMapper;
-
-    public CharacterProfileResponse createProfile(ProfileCreationRequest request){
-        CharacterProfile characterProfile = modelMapper.map(request, CharacterProfile.class);
-        characterProfileRepository.save(characterProfile);
-        return modelMapper.map(characterProfile, CharacterProfileResponse.class);
-    }
-
-    public CharacterProfileResponse getProfile(String id){
-        CharacterProfile characterProfile = characterProfileRepository.findById(id).orElseThrow(
-            () -> new RuntimeException("Profile Not Found"));
-        return modelMapper.map(characterProfile, CharacterProfileResponse.class);
-    }
-
-}
+</project>
 
 ```
 
-Create CharacterProfileController in controller package
+2. Setup application.properties and test
 
-```.java
-@RestController
-@RequestMapping("/profile-service")
-@RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class CharacterProfileController {
-    CharacterProfileService characterProfileService;
+```
+spring.application.name=api-gateway
+server.port=1234 
+app.api-prefix=/api/v1
+spring.cloud.gateway.routes[0].id=auth_service # Can be orther name doesn't need to match application name of Authentication Servic
+spring.cloud.gateway.routes[0].uri=http://localhost:8080
+spring.cloud.gateway.routes[0].predicates[0]=Path=${app.api-prefix}/auth-service/auth/**
+spring.cloud.gateway.routes[0].filters[0]=StripPrefix=2
 
-    @PostMapping
-    CharacterProfileResponse createCharacter(@RequestBody ProfileCreationRequest request){
-        return characterProfileService.createProfile(request);
-    }
+spring.cloud.gateway.routes[1].id=profile_service
+spring.cloud.gateway.routes[1].uri=http://localhost:8081
+spring.cloud.gateway.routes[1].predicates[0]=Path=${app.api-prefix}/profile-service/**
+spring.cloud.gateway.routes[1].filters[0]=StripPrefix=2
 
-    @GetMapping("/{id}")
-    CharacterProfileResponse getCharacter(@PathVariable String id){
-        return characterProfileService.getProfile(id);
-    }
-}
+spring.cloud.gateway.routes[2].id=users_service
+spring.cloud.gateway.routes[2].uri=http://localhost:8080
+spring.cloud.gateway.routes[2].predicates[0]=Path=${app.api-prefix}/auth-service/user/**
+spring.cloud.gateway.routes[2].filters[0]=StripPrefix=2
 
 ```
 
