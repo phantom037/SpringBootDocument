@@ -18,7 +18,7 @@ Intialize Spring boot project with Spring Web, Lombok, Spring Data Neo4j and add
 
 Create Springboot project with ONLY lombok dependencies and modify the pom.xml
 
-```pom.xml
+```.xml
 .....
 	<properties>
 		.....
@@ -70,7 +70,7 @@ Create Springboot project with ONLY lombok dependencies and modify the pom.xml
 
 2. Setup application.properties and test
 
-```
+```.properties
 spring.application.name=api-gateway
 server.port=1234 
 app.api-prefix=/api/v1
