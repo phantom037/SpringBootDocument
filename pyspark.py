@@ -34,6 +34,23 @@ df = spark.createDataFrame(newData, columns)
 # Group by Name and calculate average score 
 df.groupBy("Name").avg("Score").show()
 
+
+#4. Read and Write Data
+df = spark.read.csv("path/to/your/file.csv", header=True, inferSchema=True)
+df.show()
+
+df.write.csv("path/to/save/output.csv", header=True)
+
+
+
+#5. Register the DataFrame as a SQL temporary view
+df.createOrReplaceTempView("people")
+
+# Run SQL queries
+result = spark.sql("SELECT * FROM people WHERE Age > 26")
+result.show()
+
+
 1. Create a Spark session
 Spark Session Created
 2. Working with DataFrames
