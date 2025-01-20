@@ -24,6 +24,18 @@ df.select("Name").show() #Select Specific Columns
 df.withColumn("Age After 5 Years", df.Age + 5).show() #Add a New Column
 
 
+data = [("Messi", 10, "FC Barcelona", "Argentina"), ("Neymar", 11, "FC Barcelona", "Brazil"), ("Suarez", 9, "FC Barcelona", "Uruguay"), ("Iniesta", 8, "FC Barcelona", "Spain"),
+        ("Ronaldo", 10, "Real Madrid", "Portugual"), ("Pepe", 3, "Real Madrid", "Portugual"), ("Kroos", 8, "Real Madrid", "Germany"), ("Ramos", 4, "Real Madrid", "Spain"),
+        ("Reus", 11, "Dortmund", "Germany"), ("Neuer", 1, "Bayern Munich", "Germany"), ("De Paul", 4, "Athletico", "Argentina"), ("Xavi", 6, "FC Barcelona", "Spain")]
+
+columns = ["Name", "Number", "Club", "Country"]
+
+df = spark.createDataFrame(data, columns)
+df.show()
+
+df.filter((df.Number > 5) & (df.Country == "Germany")).show()
+
+
 ### Group and Aggregate ####
 newData = [("Alice", "Math", 85), ("Alice", "Science", 95), 
         ("Bob", "Math", 65), ("Bob", "Science", 78)]
