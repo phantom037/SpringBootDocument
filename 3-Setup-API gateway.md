@@ -280,3 +280,59 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 }
 ```
 
+### 4. Modify JwtDecoder in Authentication service to avoid duplicate authentication
+
+Add AuthenticationRequestInterceptor into config package
+
+```
+import feign.RequestInterceptor;
+import feign.RequestTemplate;
+import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+public class AuthenticationRequestInterceptor implements RequestInterceptor {
+
+    @Override
+    public void apply(RequestTemplate requestTemplate) {
+        ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        var authHeader = servletRequestAttributes.getRequest().getHeader("Authorization");
+        if(StringUtils.hasText(authHeader)) requestTemplate.header("Authorization", authHeader);
+    }
+}
+```
+
+Modify CustomJwtDecoder in config package
+
+```
+import com.nimbusds.jwt.SignedJWT;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.stereotype.Component;
+import java.text.ParseException;
+
+@Component
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CustomJwtDecoder implements JwtDecoder {
+    @Value("${jwt.signerKey}")
+    String SIGNER_KEY;
+
+    @Override
+    public Jwt decode(String token) throws JwtException{
+        try{
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            return new Jwt(token,
+                    signedJWT.getJWTClaimsSet().getIssueTime().toInstant(),
+                    signedJWT.getJWTClaimsSet().getExpirationTime().toInstant(),
+                    signedJWT.getHeader().toJSONObject(),
+                    signedJWT.getJWTClaimsSet().getClaims());
+        } catch (ParseException e){
+            throw new JwtException("Invalid Exception");
+        }
+    }
+}
+```
