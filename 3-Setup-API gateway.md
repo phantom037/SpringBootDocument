@@ -1,18 +1,12 @@
 
-# Spring Boot Profile Service with Neo4J
+# Spring Boot Api Gatewway with Spring Cloud Gateway 
 
-This project provides a robust authentication and authorization system for a banking application, featuring JWT-based authentication, role-based access control (RBAC), and CRUD operations for users, roles, and permissions.
+This project provides a setup api gateway by using Spring Cloud Starter Gateway
 
 ## Features
 
-- **JWT-Based Authentication**: Issue JWT tokens and validate them for secure access via OAuth 2.0, allow to validate and refresh token if need.
-- **Role-Based Access Control (RBAC)**: Manage roles and permissions for fine-grained access control using filter chain.
-- **CRUD Operations**: Manage users, roles, and permissions.
-- **Global Exception Handling**: Handles exceptions like `AccessDeniedException`, `AppException`, `MethodArgumentNotValidException`, and more.
-- **Custom JWT Decoder**: A scalable JWT decoder that fits into Spring Security’s filter chain for JWT validation and authentication.
-
-## Setup
-Intialize Spring boot project with Spring Web, Lombok, Spring Data Neo4j and add ModelMapper
+- **Request Routing**: routes incoming client requests to the appropriate microservice or backend service based on the request path, headers
+- **Centralized Authentication and Authorization**: Ensures that all incoming requests are authenticated and authorized before reaching backend services.
 
 ### 1. Update dependency
 
@@ -184,7 +178,9 @@ public class IdentityService {
 
 Add WebClientConfiguration and AuthenticationFilter into configuration package
 
-```
+WebClientConfiguration
+
+```java
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -209,8 +205,9 @@ public class WebClientConfiguration {
 
 ```
 
+AuthenticationFilter
 
-```
+```java
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -284,7 +281,7 @@ public class AuthenticationFilter implements GlobalFilter, Ordered {
 
 Add AuthenticationRequestInterceptor into config package
 
-```
+```java
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import org.springframework.util.StringUtils;
@@ -304,7 +301,7 @@ public class AuthenticationRequestInterceptor implements RequestInterceptor {
 
 Modify CustomJwtDecoder in config package
 
-```
+```java
 import com.nimbusds.jwt.SignedJWT;
 import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
