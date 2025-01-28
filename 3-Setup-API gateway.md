@@ -127,7 +127,7 @@ public class ApiResponse<T> {
 
     @Override
     public String toString(){
-        return "{\n\tcode: " + code + "\n\tmessage: " + message + "\n\tresult: " + result + "\n}";
+        return "{\n\t\"code\": " + code + "," + "\n\t\"message\": \"" + message + "\"," + "\n\t\"result\": \"" + result + "\"" + "\n}";
     }
 }
 ```
