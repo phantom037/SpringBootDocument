@@ -14,9 +14,9 @@ This project provides a robust authentication and authorization system for a ban
 ## Setup
 Intialize Spring boot project with Spring Web, Lombok, Spring Data Neo4j and add ModelMapper
 
-### 1. Create profile entity
+### 1. Update dependency
 
-Create Springboot project with ONLY lombok dependencies and modify the pom.xml
+Add these dependencies into pom.xml
 
 ```.xml
         
@@ -68,7 +68,7 @@ Create Springboot project with ONLY lombok dependencies and modify the pom.xml
 
 ```
 
-2. Setup application.properties and test
+### 2. Setup application.properties and test
 
 ```java
 spring.application.name=api-gateway
@@ -89,5 +89,194 @@ spring.cloud.gateway.routes[2].uri=http://localhost:8080
 spring.cloud.gateway.routes[2].predicates[0]=Path=${app.api-prefix}/auth-service/user/**
 spring.cloud.gateway.routes[2].filters[0]=StripPrefix=2
 
+```
+
+### 3. Config security for gateway
+
+Add IntrospectRequest to dto.request, IntrospectResponse, and ApiResponse in dto.response
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class IntrospectRequest {
+    String token;
+}
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class IntrospectResponse {
+    boolean isValid;
+}
+```
+
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Setter
+@Getter
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ApiResponse<T> {
+    int code = 200;
+    String message;
+    T result;
+
+    @Override
+    public String toString(){
+        return "{\n\tcode: " + code + "\n\tmessage: " + message + "\n\tresult: " + result + "\n}";
+    }
+}
+```
+
+
+Add into IdentityClient repository package
+
+```java
+import com.example.api_gateway.dto.request.IntrospectRequest;
+import com.example.api_gateway.dto.response.ApiResponse;
+import com.example.api_gateway.dto.response.IntrospectResponse;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.service.annotation.PostExchange;
+import reactor.core.publisher.Mono;
+
+public interface IdentityClient {
+    @PostExchange(url = "/auth-service/introspect", contentType = MediaType.APPLICATION_JSON_VALUE)
+    Mono<ApiResponse<IntrospectResponse>> introspect(@RequestBody IntrospectRequest request);
+}
+```
+
+Add IdentityService into service package
+
+```
+import com.example.api_gateway.dto.request.IntrospectRequest;
+import com.example.api_gateway.dto.response.ApiResponse;
+import com.example.api_gateway.dto.response.IntrospectResponse;
+import com.example.api_gateway.repository.IdentityClient;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+
+@Service
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class IdentityService {
+    IdentityClient identityClient;
+
+    public Mono<ApiResponse<IntrospectResponse>> introspect(String token){
+        return identityClient.introspect(IntrospectRequest.builder().token(token).build());
+    }
+}
+
+```
+
+Add WebClientConfiguration and AuthenticationFilter into configuration package
+
+```
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.support.WebClientAdapter;
+import org.springframework.web.service.invoker.HttpServiceProxyFactory;
+
+@Configuration
+public class WebClientConfiguration {
+    @Bean
+    WebClient identityWebClient(){
+        return WebClient.builder()
+                .baseUrl("http://localhost:8080")
+                .build();
+    }
+
+    @Bean
+    IdentityClient identityClient(WebClient identityWebClient){
+        HttpServiceProxyFactory httpServiceProxyFactory = HttpServiceProxyFactory.builderFor(WebClientAdapter.create(identityWebClient)).build();
+        return httpServiceProxyFactory.createClient(IdentityClient.class);
+    }
+}
+
+```
+
+
+```
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.GlobalFilter;
+import org.springframework.core.Ordered;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpResponse;
+import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Mono;
+
+import java.util.Arrays;
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PACKAGE, makeFinal = true)
+@Slf4j
+public class AuthenticationFilter implements GlobalFilter, Ordered {
+    IdentityService identityService;
+    ModelMapper modelMapper;
+    @Value("${app.api-prefix}")
+    @NonFinal
+    private String apiPrefix;
+    @NonFinal
+    private String PUBLIC_ENDPOINTS[] = {"/auth-service/auth/.*", "/auth-service/user/registration"};
+
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        if(isPublicEndpoint(exchange.getRequest())) return chain.filter(exchange);
+
+        List<String> authHeader = exchange.getRequest().getHeaders().get(HttpHeaders.AUTHORIZATION);
+        if(CollectionUtils.isEmpty(authHeader)) return unauthenticated(exchange.getResponse());
+
+        String token = authHeader.get(0).replace("Bearer", "");
+        return identityService.introspect(token).flatMap(introspectResponseApiResponse -> {
+           if(introspectResponseApiResponse.getResult().isValid()) return chain.filter(exchange);
+           return unauthenticated(exchange.getResponse());
+        }).onErrorResume(throwable ->
+                unauthenticated(exchange.getResponse()));
+    }
+
+    @Override
+    public int getOrder() {
+        return 0;
+    }
+
+    Mono<Void> unauthenticated(ServerHttpResponse response){
+        ApiResponse<?> apiResponse = ApiResponse.builder()
+                .code(401)
+                .message("Unauthenticated")
+                .build();
+
+        String body = apiResponse.toString();
+        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+        return response.writeWith(Mono.just(response.bufferFactory().wrap(body.getBytes())));
+    }
+
+    private boolean isPublicEndpoint(ServerHttpRequest request){
+        return Arrays.stream(PUBLIC_ENDPOINTS).anyMatch(s -> request.getURI().getPath().matches(apiPrefix + s));
+    }
+}
 ```
 
