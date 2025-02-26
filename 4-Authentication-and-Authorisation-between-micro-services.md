@@ -16,30 +16,30 @@ Create CharacterProfile class in entity packages
 
 ```java
   <properties>
-		.....
-		<spring-cloud.version>2023.0.2</spring-cloud.version>   <!-- find the matching version for spring cloud with sprint boot on google -->
-	</properties>
-	<dependencies>
+	.....
+ 	<spring-cloud.version>2023.0.2</spring-cloud.version>   <!-- find the matching version for spring cloud with sprint boot on google -->
+ </properties>
+ <dependencies>
   .....
     <dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-openfeign</artifactId>
-			<version>4.1.3</version>
-		</dependency>
-	</dependencies>
+	<groupId>org.springframework.cloud</groupId>
+	<artifactId>spring-cloud-starter-openfeign</artifactId>
+	<version>4.1.3</version>
+   </dependency>
+ </dependencies>
 
 
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>${spring-cloud.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+ <dependencyManagement>
+    <dependencies>
+	<dependency>
+		<groupId>org.springframework.cloud</groupId>
+		<artifactId>spring-cloud-dependencies</artifactId>
+		<version>${spring-cloud.version}</version>
+		<type>pom</type>
+		<scope>import</scope>
+	</dependency>
+    </dependencies>
+ </dependencyManagement>
 
 
 ```
