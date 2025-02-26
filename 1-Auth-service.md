@@ -1006,7 +1006,7 @@ Modify SecurityConfig
 @EnableMethodSecurity
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class SecurityConfig {
-    final String PUBLIC_ENDPOINTS[] = {"/auth-service/user", "/auth-service/auth/login", "/auth-service/auth/introspect", " /auth-service/auth/refresh", "/auth-service/auth/logout"};
+    final String PUBLIC_ENDPOINTS[] = {"/auth-service/user/registration", "/auth-service/auth/login", "/auth-service/auth/introspect", " /auth-service/auth/refresh", "/auth-service/auth/logout"};
 
     ....
 
