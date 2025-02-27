@@ -10,7 +10,7 @@ This project provides cerate and read actions for profile service using Neo4J as
 ## Setup
 Intialize Spring boot project with Spring Web, Lombok, Spring Data Neo4j and add ModelMapper
 
-### 1. Update pom.xml
+### 1. Update pom.xml of Authentication Service
 
 Create CharacterProfile class in entity packages
 
@@ -104,4 +104,195 @@ Modify UserService class
         return modelMapper.map(createdUser, UserResponse.class);
     }
     ....
+```
+
+### 2. Update pom.xml of Character Profile Service
+
+```pom.xml
+		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-oauth2-resource-server -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+			<version>3.3.2</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
+		<dependency>
+			<groupId>com.nimbusds</groupId>
+			<artifactId>nimbus-jose-jwt</artifactId>
+			<version>9.40</version>
+		</dependency>
+```
+
+Add ApiResponse in dto.response package
+
+```
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ApiResponse<T> {
+    int code = 200;
+    String message;
+    T result;
+}
+```
+
+### 3. Add exception package
+
+
+Add AppException class
+
+```
+public class AppException extends RuntimeException{
+    private ErrorCode errorCode;
+    public AppException(ErrorCode errorCode){
+        super(errorCode.getMessage());
+        this.errorCode = errorCode;
+    }
+
+    public ErrorCode getErrorCode(){ return this.errorCode; }
+
+    public void setErrorCode(ErrorCode errorCode){ this.errorCode = errorCode; }
+}
+
+```
+
+Add ErrorCode
+
+```
+@Getter
+public enum ErrorCode {
+    UNCATEGORIZED_EXCEPTION(500, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR), //INTERNAL_SERVER_ERROR => code = 500
+    INVALID_KEY(400, "Uncategorized error", HttpStatus.BAD_REQUEST),
+    USER_EXISTED(400, "User existed",HttpStatus.BAD_REQUEST),
+    USER_NOT_EXISTED(404, "User not existed", HttpStatus.NOT_FOUND),
+    UNAUTHENTICATED(401, "User is not authenticated", HttpStatus.UNAUTHORIZED), //UNAUTHORIZED => code = 401
+    UNAUTHORIZED(403, "You do not have permission", HttpStatus.FORBIDDEN);
+    private int code;
+    private String message;
+    private HttpStatus status;
+    ErrorCode(int code, String message, HttpStatus status){
+        this.code = code;
+        this.message = message;
+        this.status = status;
+    }
+}
+```
+
+Add GlobalExceptionHandler
+
+```
+@ControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(value = Exception.class)
+    ResponseEntity<ApiResponse> handlingRuntimeException(RuntimeException exception){
+        ApiResponse apiResponse = new ApiResponse<>();
+        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
+        apiResponse.setMessage(ErrorCode.UNCATEGORIZED_EXCEPTION.getMessage());
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
+
+    @ExceptionHandler(value = AppException.class)
+    ResponseEntity<ApiResponse> handlingAppException(AppException exception){
+        ErrorCode errorCode = exception.getErrorCode();
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setCode(errorCode.getCode());
+        apiResponse.setMessage(errorCode.getMessage());
+        return ResponseEntity.status(errorCode.getStatus()).body(apiResponse);
+    }
+
+    @ExceptionHandler(value = AccessDeniedException.class)
+    ResponseEntity<ApiResponse> handlingAccessDeniedException(AccessDeniedException exception){
+        ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
+        return ResponseEntity.status(errorCode.getStatus())
+                .body(ApiResponse.builder().code(errorCode.getCode())
+                        .message(errorCode.getMessage()).build());
+    }
+}
+```
+
+### 4. Add config package
+
+Add CustomJwtDecoder
+
+```
+@Component
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CustomJwtDecoder implements JwtDecoder {
+
+    @Override
+    public Jwt decode(String token) throws JwtException {
+        try{
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            return new Jwt(token,
+                    signedJWT.getJWTClaimsSet().getIssueTime().toInstant(),
+                    signedJWT.getJWTClaimsSet().getExpirationTime().toInstant(),
+                    signedJWT.getHeader().toJSONObject(),
+                    signedJWT.getJWTClaimsSet().getClaims());
+        } catch (ParseException e){
+            throw new JwtException("Invalid Exception");
+        }
+    }
+}
+```
+
+Add JwtAuthenticationEntryPoint
+
+```
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    @Override
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
+        ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
+        response.setStatus(errorCode.getStatus().value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ApiResponse<?> apiResponse = ApiResponse.builder().code(errorCode.getCode()).message(errorCode.getMessage()).build();
+        ObjectMapper objectMapper = new ObjectMapper();
+        response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
+        response.flushBuffer();
+    }
+}
+
+```
+
+Add SecurityConfig
+
+```
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class SecurityConfig {
+    final String PUBLIC_ENDPOINTS[] = {"/profile-service/internal"};
+    @Autowired
+    CustomJwtDecoder customJwtDecoder;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception{
+        httpSecurity.authorizeHttpRequests(
+                request -> request.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                        .anyRequest().authenticated());
+
+        httpSecurity.oauth2ResourceServer(oauth2 ->{
+           oauth2.jwt(jwtConfigurer -> jwtConfigurer.decoder(customJwtDecoder).jwtAuthenticationConverter(jwtAuthenticationConverter()))
+                   .authenticationEntryPoint(new JwtAuthenticationEntryPoint());
+        });
+
+        httpSecurity.csrf(httpSecurityCsrfConfigurer -> httpSecurityCsrfConfigurer.disable());
+        return httpSecurity.build();
+    }
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter(){
+        JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix("");
+        JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+        return jwtAuthenticationConverter;
+
+    }
+}
+
 ```
