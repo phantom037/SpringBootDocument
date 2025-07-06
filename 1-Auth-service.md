@@ -299,6 +299,12 @@ Update dependencies inside pom.xml
 	<groupId>org.springframework.security</groupId>
 	<artifactId>spring-security-crypto</artifactId>
 </dependency>
+<!-- https://mvnrepository.com/artifact/com.nimbusds/nimbus-jose-jwt -->
+<dependency>
+	<groupId>com.nimbusds</groupId>
+	<artifactId>nimbus-jose-jwt</artifactId>
+	<version>9.40</version>
+</dependency>
 
 ```
 
