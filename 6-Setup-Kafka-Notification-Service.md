@@ -78,30 +78,128 @@ spring.kafka.producer.value-serializer=org.springframework.kafka.support.seriali
 ```
 
 
-# Add config package
+### 3. Update Authentication Services
 
-CustomJwtDecoder,java
+# User.java
 ```java
-@Component
-@FieldDefaults(level = AccessLevel.PRIVATE)
-public class CustomJwtDecoder implements JwtDecoder {
-
-    @Override
-    public Jwt decode(String token) throws JwtException {
-        try{
-            SignedJWT signedJWT = SignedJWT.parse(token);
-            return new Jwt(token,
-                    signedJWT.getJWTClaimsSet().getIssueTime().toInstant(),
-                    signedJWT.getJWTClaimsSet().getExpirationTime().toInstant(),
-                    signedJWT.getHeader().toJSONObject(),
-                    signedJWT.getJWTClaimsSet().getClaims());
-        } catch (ParseException e){
-            throw new JwtException("Invalid Exception");
-        }
-    }
+public class User {
+    ....
+    @Column(name = "email", unique = true, columnDefinition = "VARCHAR(255) COLLATE utf8mb4_unicode_ci")
+    String email;
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default false")
+    boolean emailVerified;
+    ....
 }
+```
+
+# UserCreationRequest.java
+```java
+public class UserCreationRequest {
+    ...
+    @Email(message = "INVALID_EMAIL")
+    @NotBlank(message = "EMAIL_IS_REQUIRED")
+    String email;
+    ....
+}
+```
+
+# UserResponse.java
+```java
+public class UserResponse {
+    ...
+    boolean emailVerified;
+    ...
+}
+```
+
+
++ Outside of the auth_service package, create a event.dto package, and this file
+  
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class NotificationEvent {
+    String channel;
+    String receiver;
+    String templateCode;
+    Map<String, Object> param;
+    String subject;
+    String body;
+}
+```
+
++ Update UserService
 
 ```
+public class UserService {
+    ....
+    KafkaTemplate<String, Object> kafkaTemplate;
+
+
+    public UserResponse createUser(UserCreationRequest request){
+        ....
+
+        NotificationEvent notificationEvent = NotificationEvent.builder()
+                .channel("EMAIL")
+                .receiver(request.getEmail())
+                .subject("Welcome to Animee")
+                .body("Hello, " + request.getUsername())
+                .build();
+        kafkaTemplate.send("notification-delivery", notificationEvent);
+        return modelMapper.map(createdUser, UserResponse.class);
+    }
+
+    ....
+}
+```
+
+### 4. Update Notification Services
+
++ Outside of the notification_service package, create a event.dto package, and this file
+  
+```java
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class NotificationEvent {
+    String channel;
+    String receiver;
+    String templateCode;
+    Map<String, Object> param;
+    String subject;
+    String body;
+}
+```
+
++ Create NotificationController.java in controller package
+
+```
+@Component
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class NotificationController {
+    EmailService emailService;
+    @KafkaListener(topics = "notification-delivery")
+    public void listenNotificationDelivery(NotificationEvent message){
+        log.info("message received: {}" + message);
+        emailService.sendEmail(SendEmailRequest.builder()
+                .to(Recipient.builder()
+                        .email(message.getReceiver())
+                        .build())
+                .subject(message.getSubject())
+                .htmlContent(message.getBody())
+                .build());
+    }
+}
+```
+
+
 
 JwtAuthenticationEntryPoint.java
 ```
