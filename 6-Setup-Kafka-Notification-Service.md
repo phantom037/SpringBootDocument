@@ -71,6 +71,8 @@ In application.properties set MongoDB config
 ```
 
 ```application.properties
+# Application Services
+app.service.profile=http://localhost:8081/profiles
 # Kafka Configuration
 spring.kafka.bootstrap-servers=localhost:9094
 spring.kafka.producer.key-serializer=org.apache.kafka.common.serialization.StringSerializer
@@ -112,6 +114,18 @@ public class UserResponse {
 }
 ```
 
++ Create httpclient package inside repository package, then create ProfileClient
+
+#ProfileClient.java
+
+```
+@FeignClient(name = "profile-service", url = "${app.service.profile}", configuration = {AuthenticationRequestInterceptor.class})
+public interface ProfileClient {
+    @PostMapping(value="/internal", produces = MediaType.APPLICATION_JSON_VALUE)
+    UserProfileResponse createProfile(@RequestBody ProfileCreationRequest request);
+}
+```
+
 
 + Outside of the auth_service package, create a event.dto package, and this file
   
@@ -136,11 +150,13 @@ public class NotificationEvent {
 ```
 public class UserService {
     ....
+	ProfileClient profileClient;
     KafkaTemplate<String, Object> kafkaTemplate;
 
 
     public UserResponse createUser(UserCreationRequest request){
         ....
+		profileClient.createProfile(profileCreationRequest);
 
         NotificationEvent notificationEvent = NotificationEvent.builder()
                 .channel("EMAIL")
