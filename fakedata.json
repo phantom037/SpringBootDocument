@@ -1,0 +1,137 @@
+[
+  {
+    "name": "Deposits",
+    "description": "Accounts where customers place money for safekeeping and earn interest or maintain liquidity."
+  },
+  {
+    "name": "Loans & Credit",
+    "description": "Products where the bank lends money to individuals or businesses with repayment terms and interest."
+  },
+  {
+    "name": "Investment & Wealth",
+    "description": "Products that help customers grow wealth through securities, funds, and portfolio management."
+  },
+  {
+    "name": "Insurance",
+    "description": "Products that provide financial protection against risks such as death, accidents, or property damage."
+  },
+  {
+    "name": "Payments & Transactions",
+    "description": "Services that enable money transfers, digital payments, and day-to-day banking transactions."
+  },
+  {
+    "name": "Business Banking",
+    "description": "Products and services tailored for businesses, including loans, cash management, and merchant services."
+  },
+  {
+    "name": "Treasury & Trade Finance",
+    "description": "Products that support large-scale corporate finance, risk management, and international trade."
+  }
+]
+
+[
+  {
+    "name": "Savings Account",
+    "description": "An account that earns interest while keeping funds accessible.",
+    "price": 0,
+    "stockQuantity": 1000,
+    "category": "Deposits"
+  },
+  {
+    "name": "Certificate of Deposit",
+    "description": "A fixed-term deposit with a higher interest rate.",
+    "price": 0,
+    "stockQuantity": 500,
+    "category": "Deposits"
+  },
+
+  {
+    "name": "Personal Loan",
+    "description": "A fixed-sum loan for personal use with monthly repayments.",
+    "price": 10000,
+    "stockQuantity": 200,
+    "category": "Loans & Credit"
+  },
+  {
+    "name": "Credit Card",
+    "description": "A revolving credit line with a set spending limit.",
+    "price": 100,
+    "stockQuantity": 1000,
+    "category": "Loans & Credit"
+  },
+
+  {
+    "name": "Mutual Fund",
+    "description": "A pooled investment product managed by professionals.",
+    "price": 500,
+    "stockQuantity": 300,
+    "category": "Investment & Wealth"
+  },
+  {
+    "name": "Retirement Account",
+    "description": "A tax-advantaged account for retirement savings.",
+    "price": 1000,
+    "stockQuantity": 200,
+    "category": "Investment & Wealth"
+  },
+
+  {
+    "name": "Life Insurance",
+    "description": "A policy that pays beneficiaries upon the insured’s death.",
+    "price": 50,
+    "stockQuantity": 500,
+    "category": "Insurance"
+  },
+  {
+    "name": "Travel Insurance",
+    "description": "Covers trip cancellations, medical emergencies, and lost luggage.",
+    "price": 20,
+    "stockQuantity": 800,
+    "category": "Insurance"
+  },
+
+  {
+    "name": "Debit Card",
+    "description": "A card linked to a checking account for daily spending.",
+    "price": 5,
+    "stockQuantity": 1000,
+    "category": "Payments & Transactions"
+  },
+  {
+    "name": "Wire Transfer",
+    "description": "Electronic transfer of funds between banks domestically or internationally.",
+    "price": 30,
+    "stockQuantity": 500,
+    "category": "Payments & Transactions"
+  },
+
+  {
+    "name": "Merchant Services",
+    "description": "Payment processing solutions for businesses, including POS terminals.",
+    "price": 200,
+    "stockQuantity": 150,
+    "category": "Business Banking"
+  },
+  {
+    "name": "Business Loan",
+    "description": "A loan designed to help businesses with expansion or operations.",
+    "price": 25000,
+    "stockQuantity": 100,
+    "category": "Business Banking"
+  },
+
+  {
+    "name": "Letter of Credit",
+    "description": "A guarantee from a bank ensuring payment in international trade.",
+    "price": 1000,
+    "stockQuantity": 50,
+    "category": "Treasury & Trade Finance"
+  },
+  {
+    "name": "Foreign Exchange Service",
+    "description": "Currency exchange solutions for global businesses and trade.",
+    "price": 10,
+    "stockQuantity": 1000,
+    "category": "Treasury & Trade Finance"
+  }
+]
