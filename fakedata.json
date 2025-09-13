@@ -1,137 +1,196 @@
 [
   {
-    "name": "Deposits",
-    "description": "Accounts where customers place money for safekeeping and earn interest or maintain liquidity."
+    "name": "Electronics",
+    "description": "Devices, gadgets, and accessories including phones, laptops, and home electronics."
   },
   {
-    "name": "Loans & Credit",
-    "description": "Products where the bank lends money to individuals or businesses with repayment terms and interest."
+    "name": "Books",
+    "description": "Printed and digital books across all genres and categories."
   },
   {
-    "name": "Investment & Wealth",
-    "description": "Products that help customers grow wealth through securities, funds, and portfolio management."
+    "name": "Home & Kitchen",
+    "description": "Appliances, cookware, and home essentials for everyday living."
   },
   {
-    "name": "Insurance",
-    "description": "Products that provide financial protection against risks such as death, accidents, or property damage."
+    "name": "Fashion",
+    "description": "Clothing, footwear, and accessories for men, women, and children."
   },
   {
-    "name": "Payments & Transactions",
-    "description": "Services that enable money transfers, digital payments, and day-to-day banking transactions."
+    "name": "Sports & Outdoors",
+    "description": "Gear, apparel, and equipment for fitness, sports, and outdoor adventures."
   },
   {
-    "name": "Business Banking",
-    "description": "Products and services tailored for businesses, including loans, cash management, and merchant services."
+    "name": "Toys & Games",
+    "description": "Toys, board games, and educational items for kids and families."
   },
   {
-    "name": "Treasury & Trade Finance",
-    "description": "Products that support large-scale corporate finance, risk management, and international trade."
+    "name": "Beauty & Personal Care",
+    "description": "Cosmetics, skincare, haircare, and grooming products."
+  },
+  {
+    "name": "Automotive",
+    "description": "Car parts, tools, and accessories for maintenance and upgrades."
+  },
+  {
+    "name": "Grocery",
+    "description": "Food, snacks, beverages, and pantry essentials."
+  },
+  {
+    "name": "Pet Supplies",
+    "description": "Products for pet care, feeding, toys, and grooming."
   }
 ]
 
+
+
 [
   {
-    "name": "Savings Account",
-    "description": "An account that earns interest while keeping funds accessible.",
-    "price": 0,
-    "stockQuantity": 1000,
-    "category": "Deposits"
-  },
-  {
-    "name": "Certificate of Deposit",
-    "description": "A fixed-term deposit with a higher interest rate.",
-    "price": 0,
-    "stockQuantity": 500,
-    "category": "Deposits"
-  },
-
-  {
-    "name": "Personal Loan",
-    "description": "A fixed-sum loan for personal use with monthly repayments.",
-    "price": 10000,
+    "name": "iPhone 15",
+    "description": "Apple smartphone with A16 Bionic chip and advanced camera system.",
+    "price": 999,
     "stockQuantity": 200,
-    "category": "Loans & Credit"
+    "category": "Electronics"
   },
   {
-    "name": "Credit Card",
-    "description": "A revolving credit line with a set spending limit.",
-    "price": 100,
-    "stockQuantity": 1000,
-    "category": "Loans & Credit"
+    "name": "Sony WH-1000XM5 Headphones",
+    "description": "Wireless noise-canceling headphones with long battery life.",
+    "price": 399,
+    "stockQuantity": 350,
+    "category": "Electronics"
   },
 
   {
-    "name": "Mutual Fund",
-    "description": "A pooled investment product managed by professionals.",
-    "price": 500,
+    "name": "The Great Gatsby",
+    "description": "Classic novel by F. Scott Fitzgerald.",
+    "price": 12,
+    "stockQuantity": 500,
+    "category": "Books"
+  },
+  {
+    "name": "Atomic Habits",
+    "description": "Bestselling self-help book by James Clear.",
+    "price": 18,
+    "stockQuantity": 700,
+    "category": "Books"
+  },
+
+  {
+    "name": "Instant Pot Duo",
+    "description": "7-in-1 electric pressure cooker for fast and easy meals.",
+    "price": 89,
+    "stockQuantity": 150,
+    "category": "Home & Kitchen"
+  },
+  {
+    "name": "Dyson V15 Vacuum Cleaner",
+    "description": "Cordless stick vacuum with advanced filtration system.",
+    "price": 649,
+    "stockQuantity": 80,
+    "category": "Home & Kitchen"
+  },
+
+  {
+    "name": "Levi's 501 Jeans",
+    "description": "Classic straight-fit jeans made of durable denim.",
+    "price": 59,
+    "stockQuantity": 400,
+    "category": "Fashion"
+  },
+  {
+    "name": "Nike Air Max 270",
+    "description": "Lightweight sneakers with cushioned air sole.",
+    "price": 120,
+    "stockQuantity": 250,
+    "category": "Fashion"
+  },
+
+  {
+    "name": "Adidas Soccer Ball",
+    "description": "Official size 5 soccer ball for training and matches.",
+    "price": 35,
+    "stockQuantity": 600,
+    "category": "Sports & Outdoors"
+  },
+  {
+    "name": "Fitbit Charge 6",
+    "description": "Fitness tracker with heart rate monitor and GPS.",
+    "price": 149,
     "stockQuantity": 300,
-    "category": "Investment & Wealth"
-  },
-  {
-    "name": "Retirement Account",
-    "description": "A tax-advantaged account for retirement savings.",
-    "price": 1000,
-    "stockQuantity": 200,
-    "category": "Investment & Wealth"
+    "category": "Sports & Outdoors"
   },
 
   {
-    "name": "Life Insurance",
-    "description": "A policy that pays beneficiaries upon the insured’s death.",
-    "price": 50,
+    "name": "LEGO Star Wars Set",
+    "description": "Building set featuring iconic Star Wars characters and ships.",
+    "price": 75,
+    "stockQuantity": 220,
+    "category": "Toys & Games"
+  },
+  {
+    "name": "Monopoly Classic Edition",
+    "description": "Board game of real estate trading and strategy.",
+    "price": 25,
     "stockQuantity": 500,
-    "category": "Insurance"
-  },
-  {
-    "name": "Travel Insurance",
-    "description": "Covers trip cancellations, medical emergencies, and lost luggage.",
-    "price": 20,
-    "stockQuantity": 800,
-    "category": "Insurance"
+    "category": "Toys & Games"
   },
 
   {
-    "name": "Debit Card",
-    "description": "A card linked to a checking account for daily spending.",
-    "price": 5,
-    "stockQuantity": 1000,
-    "category": "Payments & Transactions"
+    "name": "Maybelline Mascara",
+    "description": "Volumizing and lengthening mascara for bold lashes.",
+    "price": 9,
+    "stockQuantity": 800,
+    "category": "Beauty & Personal Care"
   },
   {
-    "name": "Wire Transfer",
-    "description": "Electronic transfer of funds between banks domestically or internationally.",
+    "name": "CeraVe Moisturizing Cream",
+    "description": "Dermatologist-recommended face and body moisturizer.",
+    "price": 16,
+    "stockQuantity": 600,
+    "category": "Beauty & Personal Care"
+  },
+
+  {
+    "name": "Bosch Wiper Blades",
+    "description": "Durable and efficient windshield wiper replacement.",
+    "price": 25,
+    "stockQuantity": 300,
+    "category": "Automotive"
+  },
+  {
+    "name": "Mobil 1 Engine Oil 5W-30",
+    "description": "Synthetic motor oil for long-lasting engine protection.",
+    "price": 32,
+    "stockQuantity": 400,
+    "category": "Automotive"
+  },
+
+  {
+    "name": "Kellogg's Corn Flakes",
+    "description": "Classic breakfast cereal made from toasted flakes of corn.",
+    "price": 4,
+    "stockQuantity": 1000,
+    "category": "Grocery"
+  },
+  {
+    "name": "Coca-Cola 24-Pack",
+    "description": "24 cans of refreshing carbonated soft drink.",
+    "price": 12,
+    "stockQuantity": 800,
+    "category": "Grocery"
+  },
+
+  {
+    "name": "Pedigree Dry Dog Food",
+    "description": "Nutritious dry dog food with beef and vegetables.",
     "price": 30,
     "stockQuantity": 500,
-    "category": "Payments & Transactions"
-  },
-
-  {
-    "name": "Merchant Services",
-    "description": "Payment processing solutions for businesses, including POS terminals.",
-    "price": 200,
-    "stockQuantity": 150,
-    "category": "Business Banking"
+    "category": "Pet Supplies"
   },
   {
-    "name": "Business Loan",
-    "description": "A loan designed to help businesses with expansion or operations.",
-    "price": 25000,
-    "stockQuantity": 100,
-    "category": "Business Banking"
-  },
-
-  {
-    "name": "Letter of Credit",
-    "description": "A guarantee from a bank ensuring payment in international trade.",
-    "price": 1000,
-    "stockQuantity": 50,
-    "category": "Treasury & Trade Finance"
-  },
-  {
-    "name": "Foreign Exchange Service",
-    "description": "Currency exchange solutions for global businesses and trade.",
-    "price": 10,
-    "stockQuantity": 1000,
-    "category": "Treasury & Trade Finance"
+    "name": "Cat Scratching Post",
+    "description": "Durable scratching post with sisal rope for cats.",
+    "price": 40,
+    "stockQuantity": 300,
+    "category": "Pet Supplies"
   }
 ]
